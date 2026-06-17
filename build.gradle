@@ -1,0 +1,43 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.0'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'rs.novacode'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-logging'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	//~ JSON
+	implementation "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
+	implementation "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+	implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson_version}"
+
+	implementation "com.github.luben:zstd-jni:${zstd_version}"
+	implementation "org.apache.commons:commons-compress:${commonsCompress_version}"
+
+	//~ testing
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

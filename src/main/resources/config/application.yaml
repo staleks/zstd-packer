@@ -1,0 +1,7 @@
+spring:
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+logging:
+  config: classpath:logback-spring.xml
