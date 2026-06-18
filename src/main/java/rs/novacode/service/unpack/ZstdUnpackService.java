@@ -11,17 +11,14 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -32,8 +29,8 @@ public class ZstdUnpackService implements UnpackService {
 
     private final ObjectMapper mapper;
 
-    /**
-    public void extractOld(final Path archive, final String name, final Path target) throws IOException {
+    @Override
+    public void extract(Path archive, String name, Path target) throws IOException {
         try (FileChannel channel = FileChannel.open(archive, StandardOpenOption.READ)) {
             long fileSize = channel.size();
             if (fileSize < TRAILER_SIZE) {
@@ -68,8 +65,8 @@ public class ZstdUnpackService implements UnpackService {
 
             log.info("Extracted '{}' ({} bytes) to {}", name, entry.getOriginalSize(), target.toAbsolutePath());
         }
-    }
 
+    }
 
     private static ByteBuffer readFully(final FileChannel channel, final long position, final int length)
             throws IOException {
@@ -84,52 +81,6 @@ public class ZstdUnpackService implements UnpackService {
         }
         buffer.flip();
         return buffer;
-    }**/
-
-    @Override
-    public void extract(final Path archive, final String name, final Path target) throws IOException {
-        FileEntry entry = readIndex(archive).stream()
-                .filter(e -> e.getName().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchFileException(name + " not in " + archive));
-
-        try (FileChannel ch = FileChannel.open(archive, StandardOpenOption.READ)) {
-            ByteBuffer frameBytes = readAt(ch, entry.getOffset(), (int) entry.getCompressedLength());
-
-            try (ZstdInputStream zin = new ZstdInputStream(
-                    new ByteArrayInputStream(frameBytes.array()));
-                 OutputStream out = new BufferedOutputStream(Files.newOutputStream(target))) {
-                zin.transferTo(out);
-            }
-        }
-    }
-
-    private List<FileEntry> readIndex(final Path archive) throws IOException {
-        long size = Files.size(archive);
-        try (FileChannel ch = FileChannel.open(archive, StandardOpenOption.READ)) {
-            ByteBuffer trailer = readAt(ch, size - TRAILER_SIZE, TRAILER_SIZE);
-
-            byte[] magic = new byte[MAGIC.length];
-            trailer.get(magic);
-            if (!Arrays.equals(magic, MAGIC)) {
-                throw new IOException("Not a ZSTPACK archive: " + archive);
-            }
-            long indexOffset = trailer.getLong();
-
-            int indexLen = (int) (size - TRAILER_SIZE - indexOffset);
-            ByteBuffer indexBuf = readAt(ch, indexOffset, indexLen);
-            return mapper.readValue(indexBuf.array(), PackedFilesIndex.class).getEntries();
-        }
-    }
-
-    private static ByteBuffer readAt(final FileChannel ch, final long position, final int length) throws IOException {
-        ByteBuffer buf = ByteBuffer.allocate(length);
-        ch.position(position);
-        while (buf.hasRemaining()) {
-            if (ch.read(buf) < 0) throw new EOFException("Unexpected EOF in archive");
-        }
-        buf.flip();
-        return buf;
     }
 
 }
