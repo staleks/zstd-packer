@@ -1,5 +1,7 @@
 # zstd-packer
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## What this is
 
 `zstd-packer` is a Spring Boot **command-line** application (not a web service) that scans a directory and packs its `.eml` files into a single compressed `.zst` archive. Spring Boot 4.1.0, Java 21, Gradle.
@@ -16,6 +18,7 @@
 ./gradlew bootRun --args='scan /absolute/path/to/dir'
 ./gradlew bootRun --args='pack /absolute/path/to/dir'
 ./gradlew bootRun --args='unpack /absolute/path/to/archive.zst entry-name.eml'
+./gradlew bootRun --args='s3unpack my-bucket archives/pack.zst entry-name.eml'
 
 # Or from the assembled jar:
 java -jar build/libs/zstd-packer-0.0.1-SNAPSHOT.jar pack /absolute/path/to/dir
@@ -26,6 +29,7 @@ java -jar build/libs/zstd-packer-0.0.1-SNAPSHOT.jar pack /absolute/path/to/dir
 `Application.applicationRunner` reads positional (non-option) arguments. The first is the command; remaining args depend on it:
 - `scan <dir>` / `pack <dir>` — second arg is a directory.
 - `unpack <archive.zst> <name>` — second arg is the archive file, third is the entry name to extract; the file is written to the current working directory as `./<name>`.
+- `s3unpack <bucket> <key> <name>` — same as `unpack` but the archive lives in S3 (`s3://<bucket>/<key>`); the entry is written to `./<name>`. Only the bytes needed for that one entry are downloaded (see Architecture). AWS region/endpoint/profile come from `aws.*` in `application.yaml` (overridable via `AWS_REGION`, `AWS_S3_ENDPOINT`, `AWS_PROFILE`); credentials otherwise resolve via the default provider chain.
 
 - The directory MUST be a plain positional arg, e.g. `pack /Users/me/data`. Do **not** use `--dir=...` — anything starting with `--` becomes a Spring *option* arg and is invisible to `getNonOptionArgs()`, producing a "Usage:" warning.
 - The directory MUST be absolute (start with `/`). A relative path is resolved against the process working directory, which silently yields a wrong path and a "Not a directory" error.
@@ -46,6 +50,7 @@ java -jar build/libs/zstd-packer-0.0.1-SNAPSHOT.jar pack /absolute/path/to/dir
 - `service/scan/DirectoryScanner` + `DirectoryScannerImpl` — single-pass `Files.walkFileTree`; reads size from `BasicFileAttributes` (no extra `stat`), tolerates unreadable files, and flags files larger than 128 KiB. Returns `DirectorySummary`.
 - `service/pack/PackService` + `ZstdPackService` — the archive writer described above (compression level 9).
 - `service/unpack/UnpackService` + `ZstdUnpackService` — the matching reader: reads the trailer/index via a `FileChannel`, slices the requested entry's frame into memory, and decompresses it with `ZstdInputStream`. Validates up front and throws `IOException` with a descriptive message on a malformed archive (`too small`, `bad magic`) or a missing entry (`No entry named '...'`). This is the only `UnpackService` implementation — an earlier duplicate (`AIZstdUnpackService`) has been removed.
+- `service/unpack/S3UnpackService` + `S3ZstdUnpackService` — the S3 counterpart, reading the *same* archive format directly from an S3 object with ranged GETs. Because the layout is self-describing and every entry is its own independent frame, it never downloads the whole object: `HeadObject` for the size, then a ranged GET of the 16-byte trailer, the index footer, and finally just `[offset, offset+compressedLength)` for the requested entry's frame. Same validation/error messages as `ZstdUnpackService`. The `S3Client` is built in `ApplicationConfig` (URL-connection HTTP client, region/endpoint/profile from `aws.*` config).
 
 ### Bean wiring convention
 
