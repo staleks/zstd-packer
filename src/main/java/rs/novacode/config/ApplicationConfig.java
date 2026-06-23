@@ -5,14 +5,20 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import rs.novacode.config.storage.S3ClientConfig;
 import rs.novacode.service.PackManagement;
 import rs.novacode.service.pack.PackService;
 import rs.novacode.service.pack.ZstdPackService;
 import rs.novacode.service.scan.DirectoryScanner;
 import rs.novacode.service.scan.DirectoryScannerImpl;
+import rs.novacode.service.unpack.S3UnpackService;
 import rs.novacode.service.unpack.UnpackService;
 import rs.novacode.service.unpack.ZstdUnpackService;
 
+@Import({
+        S3ClientConfig.class
+})
 @Configuration
 public class ApplicationConfig {
 
@@ -39,11 +45,13 @@ public class ApplicationConfig {
         return new ZstdUnpackService(objectMapper);
     }
 
+
     @Bean
     public PackManagement packManagement(final DirectoryScanner directoryScanner,
                                          final PackService packService,
-                                         final UnpackService unpackService) {
-        return new PackManagement(directoryScanner, packService, unpackService);
+                                         final UnpackService unpackService,
+                                         final S3UnpackService s3UnpackService) {
+        return new PackManagement(directoryScanner, packService, unpackService, s3UnpackService);
     }
 
 }

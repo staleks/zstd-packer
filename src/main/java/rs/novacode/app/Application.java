@@ -70,7 +70,17 @@ public class Application {
                     }
                     packManagement.unpack(archive, name);
                 }
-                default -> log.warn("Unknown command '{}'. Expected 'scan', 'pack' or 'unpack'.", command);
+                case "s3unpack" -> {
+                    if (positional.size() < 4) {
+                        logUsage();
+                        return;
+                    }
+                    String bucket = positional.get(1);
+                    String key = positional.get(2);
+                    String name = positional.get(3);
+                    packManagement.s3Unpack(bucket, key, name);
+                }
+                default -> log.warn("Unknown command '{}'. Expected 'scan', 'pack', 'unpack' or 's3unpack'.", command);
             }
         };
     }
@@ -78,9 +88,10 @@ public class Application {
     private static void logUsage() {
         log.warn("""
                 Usage:
-                  scan   <dir>                  scan a directory and print a summary
-                  pack   <dir>                  pack *.eml files in a directory into a timestamped .zst
-                  unpack <archive.zst> <name>   extract one entry into the current directory""");
+                  scan      <dir>                  scan a directory and print a summary
+                  pack      <dir>                  pack *.eml files in a directory into a timestamped .zst
+                  unpack    <archive.zst> <name>   extract one entry into the current directory
+                  s3unpack  <bucket> <key> <name>   extract one entry from an archive in S3 (ranged GET) into the current directory""");
     }
 
 }

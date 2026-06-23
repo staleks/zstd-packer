@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rs.novacode.model.DirectorySummary;
 import rs.novacode.service.pack.PackService;
 import rs.novacode.service.scan.DirectoryScanner;
+import rs.novacode.service.unpack.S3UnpackService;
 import rs.novacode.service.unpack.UnpackService;
 
 import java.io.IOException;
@@ -43,6 +44,9 @@ class PackManagementTest {
     @Mock
     private UnpackService unpackService;
 
+    @Mock
+    private S3UnpackService s3UnpackService;
+
     private PackManagement underTest;
 
     @TempDir
@@ -50,7 +54,7 @@ class PackManagementTest {
 
     @BeforeEach
     void setUp() {
-        underTest = new PackManagement(directoryScanner, packService, unpackService);
+        underTest = new PackManagement(directoryScanner, packService, unpackService, s3UnpackService);
     }
 
     private Path touch(String name) throws IOException {

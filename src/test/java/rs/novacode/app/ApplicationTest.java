@@ -256,6 +256,32 @@ class ApplicationTest {
     }
 
     @Nested
+    @DisplayName("s3unpack")
+    class S3Unpack {
+
+        @Test
+        @DisplayName("should extract the named entry from the S3 archive")
+        void shouldExtractTheNamedEntryFromTheS3Archive() throws Exception {
+            // When
+            run("s3unpack", "my-bucket", "archives/pack.zst", "message.eml");
+
+            // Then
+            verify(packManagement).s3Unpack(eq("my-bucket"), eq("archives/pack.zst"), eq("message.eml"));
+            verifyNoInteractions(directoryScanner);
+        }
+
+        @Test
+        @DisplayName("should print usage when the entry name is missing")
+        void shouldPrintUsageWhenTheEntryNameIsMissing() throws Exception {
+            // When — only three positional args, the contract needs four
+            run("s3unpack", "my-bucket", "archives/pack.zst");
+
+            // Then
+            verify(packManagement, never()).s3Unpack(any(), any(), any());
+        }
+    }
+
+    @Nested
     @DisplayName("unknown command")
     class UnknownCommand {
 

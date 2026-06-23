@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import rs.novacode.model.DirectorySummary;
 import rs.novacode.service.pack.PackService;
 import rs.novacode.service.scan.DirectoryScanner;
+import rs.novacode.service.unpack.S3UnpackService;
 import rs.novacode.service.unpack.UnpackService;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ public class PackManagement {
     private final DirectoryScanner directoryScanner;
     private final PackService packService;
     private final UnpackService unpackService;
+    private final S3UnpackService s3UnpackService;
 
     /**
      * Scans {@code sourceDir}, then packs every {@code .eml} file directly under it into a
@@ -65,6 +67,21 @@ public class PackManagement {
     public Path unpack(final Path archive, final String name) throws IOException {
         Path target = Path.of(name);
         unpackService.extract(archive, name, target);
+        return target;
+    }
+
+    /**
+     * Extracts a single entry from a {@code .zst} archive stored in S3 into the current working
+     * directory, downloading only the bytes needed for that entry.
+     *
+     * @param bucket S3 bucket holding the packed archive
+     * @param key    S3 key of the packed {@code .zst} archive
+     * @param name   name of the entry to extract
+     * @return path to the extracted file
+     */
+    public Path s3Unpack(final String bucket, final String key, final String name) throws IOException {
+        Path target = Path.of(name);
+        s3UnpackService.extract(bucket, key, name, target);
         return target;
     }
 }

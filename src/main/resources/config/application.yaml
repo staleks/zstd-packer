@@ -3,5 +3,14 @@ spring:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
 
+# AWS S3 settings for the `s3unpack` command.
+# All are overridable via environment variables.
+aws:
+  s3:
+    accessKey: ${AWS_S3_ACCESS_KEY}
+    secretKey: ${AWS_S3_SECRET_KEY}
+    endpoint: s3.us-east-1.amazonaws.com
+    region: us-east-1
+
 logging:
   config: classpath:logback-spring.xml
